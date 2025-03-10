@@ -217,6 +217,7 @@ payment-gateway/
 │   └── main.go               # Application entry point
 │── db/
 │   ├── interface.go          # Database interface
+│   ├── init.sql             #First time queries if needed
 │   ├── db_helpers.go           # PostgreSQL implementation
 │   ├── mock.go               # Mock implementation for testing
 ├── docs/
