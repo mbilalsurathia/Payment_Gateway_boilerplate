@@ -87,7 +87,7 @@ The system uses the following database tables:
 
 4. Run the application
    ```bash
-   go run cmd/server/main.go
+   go run cmd/main.go
    ```
 
 5. The API will be available at http://localhost:8080
@@ -244,12 +244,6 @@ payment-gateway/
 │       ├── middleware.go           # middleware common function
 │       ├── resilience.go         # Circuit breaker and retry logic
 │       └── security.go           # Encryption and security utils
-├── pkg/
-│   ├── kafka/
-│   │   └── producer.go           # Kafka producer for async processing
-├── scripts/
-│   └── db/
-│       └── init.sql              # Database initialization script
 ├── Dockerfile                    # Docker configuration
 ├── docker-compose.yaml           # Docker Compose configuration
 ├── go.mod                        # Go module file
