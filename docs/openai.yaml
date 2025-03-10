@@ -1,0 +1,318 @@
+openapi: 3.0.0
+info:
+  title: Payment Gateway Integration API
+  description: |
+    API for integrating with multiple payment gateways to process deposits and withdrawals
+    with dynamic gateway selection based on user region.
+  version: 1.0.0
+  contact:
+    name: Payment Gateway Team
+    email: dev@example.com
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+tags:
+  - name: Transactions
+    description: Operations for processing deposits and withdrawals
+  - name: Callbacks
+    description: Operations for handling gateway callbacks
+  - name: System
+    description: System operations like health checks
+paths:
+  /deposit:
+    post:
+      summary: Process a deposit transaction
+      description: |
+        Processes a deposit transaction by selecting the appropriate payment gateway
+        based on the user's country and transaction details.
+      operationId: processDeposit
+      tags:
+        - Transactions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionRequest'
+            example:
+              user_id: 1
+              amount: 100.00
+              currency: "USD"
+      responses:
+        '200':
+          description: Deposit processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+              example:
+                status: "processing"
+                transaction_id: 123
+                message: "Transaction is being processed"
+                redirect_url: "https://paypal.example.com/payment/ref-123"
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+              example:
+                status_code: 400
+                message: "Invalid request: Amount must be positive"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+              example:
+                status_code: 500
+                message: "Failed to process deposit: gateway unavailable"
+  /withdrawal:
+    post:
+      summary: Process a withdrawal transaction
+      description: |
+        Processes a withdrawal transaction by selecting the appropriate payment gateway
+        based on the user's country and transaction details.
+      operationId: processWithdrawal
+      tags:
+        - Transactions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionRequest'
+            example:
+              user_id: 1
+              amount: 50.00
+              currency: "USD"
+      responses:
+        '200':
+          description: Withdrawal processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+              example:
+                status: "processing"
+                transaction_id: 456
+                message: "Withdrawal request is being processed"
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+              example:
+                status_code: 400
+                message: "Invalid request: Amount must be positive"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+              example:
+                status_code: 500
+                message: "Failed to process withdrawal: gateway unavailable"
+  /callback/{gateway_id}:
+    post:
+      summary: Receive callback from payment gateway
+      description: |
+        Receives asynchronous callbacks from payment gateways to update transaction status.
+        The gateway_id in the path identifies which gateway is sending the callback.
+      operationId: processCallback
+      tags:
+        - Callbacks
+      parameters:
+        - name: gateway_id
+          in: path
+          description: Unique identifier of the payment gateway
+          required: true
+          schema:
+            type: string
+          example: "1"
+      requestBody:
+        description: Callback data from the gateway
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallbackData'
+            example:
+              transaction_id: 123
+              status: "completed"
+              reference_id: "PAYPAL-1234567890"
+              message: "Payment successful"
+      responses:
+        '200':
+          description: Callback processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+              example:
+                status: "success"
+        '400':
+          description: Invalid callback data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+              example:
+                status_code: 400
+                message: "Invalid gateway: provider with ID 999 not found"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+              example:
+                status_code: 500
+                message: "Failed to process callback: transaction not found"
+  /health:
+    get:
+      summary: API health check
+      description: Check the health of the API and its dependencies
+      operationId: healthCheck
+      tags:
+        - System
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  version:
+                    type: string
+                    example: 1.0.0
+              example:
+                status: "healthy"
+                version: "1.0.0"
+        '500':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+              example:
+                status_code: 500
+                message: "Database connection failed"
+components:
+  schemas:
+    TransactionRequest:
+      type: object
+      required:
+        - user_id
+        - amount
+        - currency
+      properties:
+        user_id:
+          type: integer
+          description: ID of the user making the transaction
+          example: 1
+        amount:
+          type: number
+          format: float
+          description: Amount to deposit or withdraw
+          example: 100.00
+        currency:
+          type: string
+          description: Currency code (ISO 4217)
+          example: USD
+        account_number:
+          type: string
+          description: Bank account number (for certain payment methods)
+          example: "123456789"
+        card_number:
+          type: string
+          description: Card number (for card payments, partially masked)
+          example: "411111******1111"
+        bank_code:
+          type: string
+          description: Bank code or routing number
+          example: "ABCDUS12"
+    TransactionResponse:
+      type: object
+      required:
+        - status
+        - transaction_id
+      properties:
+        status:
+          type: string
+          description: Status of the transaction
+          enum: [pending, processing, completed, failed, cancelled]
+          example: processing
+        transaction_id:
+          type: integer
+          description: Unique identifier for the transaction
+          example: 123
+        message:
+          type: string
+          description: Additional information about the transaction
+          example: Transaction is being processed
+        redirect_url:
+          type: string
+          description: URL to redirect the user to complete the payment (if applicable)
+          example: https://paypal.example.com/payment/ref-123
+    CallbackData:
+      type: object
+      required:
+        - transaction_id
+        - status
+        - reference_id
+      properties:
+        transaction_id:
+          type: integer
+          description: ID of the transaction being updated
+          example: 123
+        status:
+          type: string
+          description: New status of the transaction
+          enum: [processing, completed, failed, cancelled]
+          example: completed
+        message:
+          type: string
+          description: Additional information about the status update
+          example: Payment successful
+        reference_id:
+          type: string
+          description: Gateway's reference ID for the transaction
+          example: PAYPAL-1234567890
+        gateway_id:
+          type: string
+          description: ID of the gateway sending the callback
+          example: "1"
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the status update
+          example: "2023-03-09T12:34:56Z"
+    APIResponse:
+      type: object
+      required:
+        - status_code
+        - message
+      properties:
+        status_code:
+          type: integer
+          description: HTTP status code
+          example: 400
+        message:
+          type: string
+          description: Error message
+          example: Invalid request parameters
+        data:
+          type: object
+          description: Optional data payload
